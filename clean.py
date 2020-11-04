@@ -1,20 +1,15 @@
 #!/usr/bin/env python
-import argparse
 import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader
 from segan.models import *
 from segan.datasets import *
 import soundfile as sf
 import sounddevice as sd
-from scipy.io import wavfile
 from torch.autograd import Variable
 import numpy as np
 import random
 import librosa
 import timeit
 import json
-import glob
 import os
 import sys
 import time
