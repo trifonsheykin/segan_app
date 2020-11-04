@@ -216,13 +216,16 @@ def main():
     combobox_out_device.place(x=7, y=123)
 
     try:
-        combobox_in_device.current(int(device_in))
-        combobox_out_device.current(int(device_out))
+        # check we have input/output channels, revert to defaults if not
+        if qd[device_in]['max_input_channels']==0 or \
+           qd[device_out]['max_output_channels']==0 or max(device_in, device_out) >= len(qd):
+            device_in, device_out = sd.default.device
+        combobox_in_device.current(device_in)
+        combobox_out_device.current(device_out)
     except Exception as e:
-        device_in = 0
-        device_out = 1
-        combobox_in_device.current(int(device_in))
-        combobox_out_device.current(int(device_out))
+        device_in, device_out = 0, 1
+        combobox_in_device.current(device_in)
+        combobox_out_device.current(device_out)
 
     tk.Label(window, text='Whisper conversion:').place(x=7, y=150)
     button_start = tk.Button(text='Start',command=start, width=23, state=tk.NORMAL)
