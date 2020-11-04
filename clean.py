@@ -12,10 +12,7 @@ from torch.autograd import Variable
 import numpy as np
 import random
 import librosa
-import matplotlib
 import timeit
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import json
 import glob
 import os
@@ -151,11 +148,7 @@ def main():
             file_train = 'train.opts' #os.path.join(os.path.dirname(sys.executable), 'train.opts')
             with open(file_train, 'r') as cfg_f:
                 args = ArgParser(json.load(cfg_f))
-            if hasattr(args, 'wsegan') and args.wsegan:
-                segan = WSEGAN(args)     
-            else:
-                segan = SEGAN(args) 
-                
+            segan = WSEGAN(args)     
             segan.G.load_pretrained(file_path, True)
             segan.G.eval()
             global input_stream
