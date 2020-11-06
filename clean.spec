@@ -26,6 +26,12 @@ MISSING_DYLIBS = (
 a.binaries += TOC([
     (lib.name, str(lib.resolve()), 'BINARY') for lib in MISSING_DYLIBS
 ])
+MISSING_DYLIBS_2 = (
+    Path('/Applications/anaconda3/envs/sgn/lib/python3.6/site-packages/samplerate/_samplerate_data/libsamplerate.dylib'), 
+)
+a.binaries += TOC([
+    (lib.name, str(lib.resolve()), 'BINARY') for lib in MISSING_DYLIBS_2
+])
 
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
