@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import os
+os.environ['JOBLIB_MULTIPROCESSING'] = "0"
 import argparse
 import torch
 import torch.nn as nn
@@ -18,7 +20,6 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import json
 import glob
-import os
 import sys
 import time
 import tkinter as tk 
@@ -46,6 +47,11 @@ class ArgParser(object):
 def denormalize_wave_minmax(x):
     return ((x - 1.) * (65636./2.)) + 32767.
 
+if getattr(sys, 'frozen', False):
+    Current_Path = os.path.dirname(sys.executable)
+else:
+    Current_Path = str(os.path.dirname(__file__))
+
 input_stream = None
 output_stream = None
 file_path = None
@@ -56,9 +62,9 @@ device_out = 1
 q_in = queue.Queue()
 q_out = queue.Queue()
 ratio_out = 48000/16000
-data_in = np.zeros((8000,1), dtype=np.int16)
-data_temp = np.zeros((8000,1), dtype=np.int16)
-data_out = np.zeros((24000,1), dtype=np.float32)
+data_in = np.zeros((16000,1), dtype=np.int16)
+data_temp = np.zeros((16000,1), dtype=np.int16)
+data_out = np.zeros((48000,1), dtype=np.float32)
 i = np.iinfo(data_in.dtype)
 abs_max = 2 ** (i.bits - 1)
 offset = i.min + abs_max
@@ -77,7 +83,7 @@ def main():
     #Read config file
 
     config = configparser.ConfigParser()
-    file_config = 'config.conf' # os.path.join(os.path.dirname(sys.executable), 'config.conf')
+    file_config = os.path.join(Current_Path, 'config.conf')
     with open(file_config) as fp:
         config.readfp(fp) 
         global file_path  
@@ -122,7 +128,6 @@ def main():
             audio_process = True
             while audio_process:
                 item = q_in.get()
-                print('PROCESSING:')
                 wav = data_in[:,0] 
                 wav = normalize_wave_minmax(wav) 
                 wav = pre_emphasize(wav, 0.95)
@@ -132,23 +137,21 @@ def main():
                 data_temp[:,0] = g_wav 
                 audio = (data_temp.astype('float32') - offset) / abs_max
                 audio = samplerate.resample(audio, ratio_out, 'sinc_best')
-                if q_out.empty():
+                if q_out.empty() and audio_process:
                     q_out.put(audio)
                     data_out[:] = audio
 
         def input_callback(indata, frames, time, status):
-            print('INPUT:')
             data_in[:] = indata
             q_in.put(data_in)
         
         def output_callback(outdata, frames, time, status):
-            print('OUTPUT:')
             if not q_out.empty():
                 d = q_out.get()
             outdata[:] = data_out
 
         try:
-            file_train = 'train.opts' #os.path.join(os.path.dirname(sys.executable), 'train.opts')
+            file_train = os.path.join(Current_Path, 'train.opts')
             with open(file_train, 'r') as cfg_f:
                 args = ArgParser(json.load(cfg_f))
             if hasattr(args, 'wsegan') and args.wsegan:
@@ -166,19 +169,19 @@ def main():
             #             dtype='int16',
             #             channels=1, callback=callback)
             input_stream = sd.InputStream(device=device_in, channels=1, dtype='int16',
-                            blocksize=8000, #16000 - 1 sec
+                            blocksize=16000, #16000 - 1 sec
                             samplerate=16000, 
                             callback=input_callback)
             
             output_stream = sd.OutputStream(device=device_out, channels=1, dtype='float32', 
-                            blocksize=24000,
+                            blocksize=48000,
                             samplerate=48000, 
                             callback=output_callback)
             
             sound_thread = threading.Thread(target=sound_processing)
 
-            sound_thread.start()
             input_stream.start()
+            sound_thread.start()
             output_stream.start()
 
         except Exception as e:
