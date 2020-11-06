@@ -3,21 +3,15 @@ import os
 os.environ['JOBLIB_MULTIPROCESSING'] = "0"
 import argparse
 import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader
 from segan.models import *
 from segan.datasets import *
 import soundfile as sf
 import sounddevice as sd
-from scipy.io import wavfile
 from torch.autograd import Variable
 import numpy as np
 import random
 import librosa
-import matplotlib
 import timeit
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import json
 import glob
 import sys
@@ -154,11 +148,7 @@ def main():
             file_train = os.path.join(Current_Path, 'train.opts')
             with open(file_train, 'r') as cfg_f:
                 args = ArgParser(json.load(cfg_f))
-            if hasattr(args, 'wsegan') and args.wsegan:
-                segan = WSEGAN(args)     
-            else:
-                segan = SEGAN(args) 
-                
+            segan = WSEGAN(args)     
             segan.G.load_pretrained(file_path, True)
             segan.G.eval()
             global input_stream
@@ -226,13 +216,16 @@ def main():
     combobox_out_device.place(x=7, y=123)
 
     try:
-        combobox_in_device.current(int(device_in))
-        combobox_out_device.current(int(device_out))
+        # check we have input/output channels, revert to defaults if not
+        if qd[device_in]['max_input_channels']==0 or \
+           qd[device_out]['max_output_channels']==0 or max(device_in, device_out) >= len(qd):
+            device_in, device_out = sd.default.device
+        combobox_in_device.current(device_in)
+        combobox_out_device.current(device_out)
     except Exception as e:
-        device_in = 0
-        device_out = 1
-        combobox_in_device.current(int(device_in))
-        combobox_out_device.current(int(device_out))
+        device_in, device_out = 0, 1
+        combobox_in_device.current(device_in)
+        combobox_out_device.current(device_out)
 
     tk.Label(window, text='Whisper conversion:').place(x=7, y=150)
     button_start = tk.Button(text='Start',command=start, width=23, state=tk.NORMAL)
